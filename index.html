@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Toko Panel & Sewa Bot</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f7; margin: 0; padding: 20px; color: #333; }
+    
+    /* Header */
+    header { display: flex; justify-content: center; align-items: center; max-width: 900px; margin: 0 auto 20px; flex-wrap: wrap; gap: 10px; text-align: center; }
+    header h1 { font-size: 24px; margin: 0; color: #1a73e8; }
+    
+    .container { max-width: 900px; margin: 0 auto; }
+    h2 { margin-top: 30px; border-bottom: 2px solid #ddd; padding-bottom: 8px; color: #333; }
+    
+    /* Grid Produk */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s; position: relative; overflow: hidden; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .card h3 { margin: 0 0 6px; font-size: 16px; padding-right: 50px; }
+    
+    /* Harga & Diskon */
+    .harga-container { margin-bottom: 12px; }
+    .harga-asli { color: #999; text-decoration: line-through; font-size: 13px; margin-bottom: 2px; display: block; }
+    .harga { color: #1a73e8; font-weight: bold; font-size: 20px; display: block; }
+    .harga.diskon { color: #d93025; }
+    
+    /* Label Diskon */
+    .badge-diskon { position: absolute; top: 10px; right: -30px; background: #d93025; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 30px; transform: rotate(45deg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: center; width: 120px; }
+    
+    .wa { background: #25D366; color: #fff; text-decoration: none; text-align: center; padding: 10px; border-radius: 6px; font-size: 14px; font-weight: bold; display: block; transition: 0.3s; }
+    .wa:hover { background: #1ebe5d; }
+    
+    /* Area QRIS & Pembayaran */
+    .pembayaran-box { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 20px; text-align: center; }
+    
+    /* Disclaimer Baru */
+    .disclaimer-1 { background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; font-size: 14px; line-height: 1.5; font-weight: bold; }
+    .disclaimer-2 { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left; font-size: 14px; line-height: 1.5; }
+    .disclaimer-2 strong { color: #d93025; }
+    
+    /* Animasi QRIS */
+    .qris-container { width: 250px; height: 250px; margin: 0 auto 20px; position: relative; background: #f8f9fa; border-radius: 10px; border: 2px dashed #ccc; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    .qris-img { width: 100%; height: 100%; object-fit: contain; display: none; }
+    
+    .loader { display: none; flex-direction: column; align-items: center; justify-content: center; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1a73e8; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    .btn-generate { background: #1a73e8; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; max-width: 300px; }
+    .btn-generate:hover { background: #1557b0; }
+    .btn-generate:disabled { background: #ccc; cursor: not-allowed; }
+    
+    .qris-actions { display: none; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛒 Toko Panel & Sewa Bot</h1>
+  </header>
+
+  <div class="container">
+    
+    <!-- Area Pembayaran QRIS -->
+    <div class="pembayaran-box">
+      <h2 style="margin-top:0; border:none; color: #1a73e8;">💳 Pembayaran via QRIS</h2>
+      
+      <!-- DISCLAIMER BARU: Hubungi Admin Sebelum Order -->
+      <div class="disclaimer-1">
+        📢 <b>PENTING:</b> Silakan hubungi Admin terlebih dahulu untuk memastikan <b>ketersediaan stok</b> sebelum melakukan pembayaran/transfer!
+      </div>
+
+      <!-- DISCLAIMER LAMA -->
+      <div class="disclaimer-2">
+        <strong>⚠️ DISCLAIMER PEMBAYARAN:</strong><br/>
+        1. Lakukan transfer <b>sesuai harga</b> yang tertera.<br/>
+        2. <b>WAJIB</b> screenshot / foto bukti transfer.<br/>
+        3. Kirimkan bukti transfer tersebut ke Admin via WhatsApp.<br/>
+        4. Pesanan akan diproses <b>SETELAH</b> Admin memverifikasi bukti transfer.
+      </div>
+
+      <div class="qris-container" id="qrisContainer">
+        <!-- Loading Animation -->
+        <div class="loader" id="loader">
+          <div class="spinner"></div>
+          <span style="font-size:14px; color:#666;">Menyiapkan QRIS...</span>
+        </div>
+        <!-- Gambar QRIS -->
+        <img src="" alt="QRIS" class="qris-img" id="qrisImg" />
+      </div>
+
+      <button class="btn-generate" id="btnGenerate">Generate QRIS</button>
+
+      <div class="qris-actions" id="qrisActions">
+        <p style="color: #d93025; font-weight: bold; font-size: 14px; margin-bottom: 10px;">Sudah transfer? Kirim bukti ke Admin:</p>
+        <a href="#" id="btnKonfirmasi" class="wa" target="_blank" rel="noopener" style="display:inline-block; padding: 12px 30px; width: auto;">📤 Kirim Bukti Transfer via WhatsApp</a>
+      </div>
+    </div>
+
+    <h2>🖥️ Panel Pterodactyl</h2>
+    <div class="grid" id="panelGrid"></div>
+
+    <h2>🤖 Sewa Bot</h2>
+    <div class="grid" id="botGrid"></div>
+  </div>
+
+  <script type="module">
+    import { panelPterodactyl, sewaBot, linkWA, URL_QRIS } from './produk.js';
+
+    // --- LOGIKA ANIMASI GENERATE QRIS ---
+    const btnGenerate = document.getElementById('btnGenerate');
+    const qrisImg = document.getElementById('qrisImg');
+    const loader = document.getElementById('loader');
+    const qrisActions = document.getElementById('qrisActions');
+    const btnKonfirmasi = document.getElementById('btnKonfirmasi');
+
+    btnGenerate.onclick = () => {
+      btnGenerate.disabled = true;
+      btnGenerate.textContent = "Loading...";
+      loader.style.display = "flex"; 
+      qrisImg.style.display = "none";
+
+      setTimeout(() => {
+        qrisImg.src = URL_QRIS; 
+        qrisImg.onload = () => {
+          loader.style.display = "none"; 
+          qrisImg.style.display = "block"; 
+          btnGenerate.style.display = "none"; 
+          qrisActions.style.display = "block"; 
+          
+          const pesanKonfirmasi = "Halo Admin, saya sudah melakukan transfer via QRIS. Berikut saya lampirkan bukti transfernya. Mohon segera diproses ya.";
+          btnKonfirmasi.href = linkWA(pesanKonfirmasi);
+        };
+        qrisImg.onerror = () => {
+          loader.innerHTML = "<span style='color:red; font-size:14px; text-align:center;'>Gagal memuat QRIS.<br>Pastikan Link URL Gambar benar & bisa diakses publik.</span>";
+        }
+      }, 1500);
+    };
+
+    // --- LOGIKA PRODUK & HARGA DISKON ---
+    const rupiah = (n) => "Rp" + n.toLocaleString('id-ID');
+
+    function buatKartu(produk, grid) {
+      const el = document.createElement('div');
+      el.className = 'card';
+      
+      // Cek apakah ada diskon
+      const isDiskon = produk.hargaDiskon !== null && produk.hargaDiskon !== undefined;
+      const hargaTampil = isDiskon ? produk.hargaDiskon : produk.hargaAsli;
+      
+      // Pesan WhatsApp otomatis
+      const pesan = `Halo, saya mau order *${produk.nama}* dengan harga *${rupiah(hargaTampil)}*. Mohon info ketersediaan dan cara transfernya.`;
+
+      // HTML untuk bagian Harga
+      let htmlHarga = `<div class="harga-container">`;
+      if (isDiskon) {
+        htmlHarga += `<span class="harga-asli">${rupiah(produk.hargaAsli)}</span>`;
+        htmlHarga += `<span class="harga diskon">${rupiah(hargaTampil)}</span>`;
+      } else {
+        htmlHarga += `<span class="harga">${rupiah(hargaTampil)}</span>`;
+      }
+      htmlHarga += `</div>`;
+
+      // HTML untuk Badge Diskon (Pita di pojok kanan atas)
+      let htmlBadge = isDiskon ? `<div class="badge-diskon">${produk.teksDiskon || 'DISKON'}</div>` : '';
+
+      el.innerHTML = `
+        ${htmlBadge}
+        <div>
+          <h3>${produk.nama}</h3>
+          ${htmlHarga}
+        </div>
+        <a class="wa" target="_blank" rel="noopener" href="${linkWA(pesan)}">Hubungi Admin</a>
+      `;
+      grid.appendChild(el);
+    }
+
+    const panelGrid = document.getElementById('panelGrid');
+    panelPterodactyl.forEach(p => buatKartu(p, panelGrid));
+
+    const botGrid = document.getElementById('botGrid');
+    sewaBot.forEach(p => buatKartu(p, botGrid));
+  </script>
+</body>
+</html>
